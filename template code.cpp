@@ -1,9 +1,9 @@
 /**
  * SMART LIBRARY & DIGITAL ASSET MANAGEMENT SYSTEM
  * Core Backend & Business Logic Template
- * 
+ *
  * Instructions for the Team:
- * 1. Do not add GUI code to this file. This file strictly handles OOP, 
+ * 1. Do not add GUI code to this file. This file strictly handles OOP,
  *    PostgreSQL logic, design patterns, and file I/O.
  * 2. Look for the "// TODO (Member X):" tags to assign Jira tasks to team members.
  * 3. Once this console test runs successfully, this file will be split into
@@ -17,9 +17,10 @@
 #include <ctime>
 #include <fstream>
 #include <sstream>
+#include <Qdate>
 
 // Use #include <QSqlDatabase> if using Qt, or <pqxx/pqxx> if using pure C++ driver
-// #include <QSqlDatabase> 
+// #include <QSqlDatabase>
 // #include <QSqlQuery>
 
 using namespace std;
@@ -36,6 +37,7 @@ enum class UserRole { ADMIN, MEMBER };
 // DESIGN PATTERN 1: STRATEGY (Fine Calculation - Member 2)
 // ============================================================
 
+
 class IFineStrategy {
 public:
     virtual ~IFineStrategy() = default;
@@ -45,15 +47,27 @@ public:
 class PhysicalBookFine : public IFineStrategy {
 public:
     double calculateFine(int daysLate) const override {
-        // TODO (Member 2): Implement logic (e.g., $0.50 per day late, max cap of $20)
-        return daysLate * 0.50;
+        if (daysLate <= 0) {
+            return 0.0;
+        }
+
+        double fine = daysLate * 0.50;
+
+        if (fine > 20.0) {
+            fine = 20.0;
+        }
+
+        return fine;
     }
 };
 
 class LaptopFine : public IFineStrategy {
 public:
     double calculateFine(int daysLate) const override {
-        // TODO (Member 2): Implement logic (e.g., $5.00 per day late, no maximum cap)
+        if (daysLate <= 0) {
+            return 0.0;
+        }
+
         return daysLate * 5.00;
     }
 };
@@ -61,7 +75,6 @@ public:
 class EBookFine : public IFineStrategy {
 public:
     double calculateFine(int daysLate) const override {
-        // TODO (Member 2): E-Books automatically revoke access; fine is always $0.00
         return 0.0;
     }
 };
@@ -111,6 +124,7 @@ public:
 // CORE ENTITIES (Inheritance / Polymorphism - Member 2)
 // ============================================================
 
+
 class User {
 private:
     int userId;
@@ -120,9 +134,9 @@ private:
     double totalUnpaidFines;
 
 public:
-    User(int id, string n, string e, UserRole r) 
+    User(int id, string n, string e, UserRole r)
         : userId(id), name(n), email(e), role(r), totalUnpaidFines(0.0) {}
-    
+
     int getId() const { return userId; }
     string getName() const { return name; }
     double getFines() const { return totalUnpaidFines; }
@@ -137,9 +151,9 @@ protected:
     IFineStrategy* fineStrategy;
 
 public:
-    Asset(int id, string t, IFineStrategy* strategy) 
+    Asset(int id, string t, IFineStrategy* strategy)
         : assetId(id), title(t), state(AssetState::AVAILABLE), fineStrategy(strategy) {}
-    
+
     virtual ~Asset() {
         delete fineStrategy;
     }
@@ -153,7 +167,7 @@ public:
         return fineStrategy->calculateFine(daysLate);
     }
 
-    virtual void printDetails() const = 0; 
+    virtual void printDetails() const = 0;
 };
 
 class PhysicalBook : public Asset {
@@ -161,7 +175,7 @@ private:
     string isbn;
     string author;
 public:
-    PhysicalBook(int id, string t, string i, string a) 
+    PhysicalBook(int id, string t, string i, string a)
         : Asset(id, t, new PhysicalBookFine()), isbn(i), author(a) {}
 
     void printDetails() const override {
@@ -169,11 +183,22 @@ public:
     }
 };
 
+class EBook : public Asset {
+public:
+    EBook(int id, string t)
+        : Asset(id, t, new EBookFine()) {}
+
+    void printDetails() const override {
+        cout << "[E-Book] ID: " << assetId
+             << " | " << title << endl;
+    }
+};
+
 class Laptop : public Asset {
 private:
     string serialNumber;
 public:
-    Laptop(int id, string t, string sn) 
+    Laptop(int id, string t, string sn)
         : Asset(id, t, new LaptopFine()), serialNumber(sn) {}
 
     void printDetails() const override {
@@ -185,13 +210,18 @@ public:
 // DESIGN PATTERN 3: FACTORY (Asset Creation - Member 2)
 // ============================================================
 
+
 class AssetFactory {
 public:
     static Asset* createAssetFromDBRow(int id, string title, string typeStr, string extraData1, string extraData2) {
         // TODO (Member 2): Parse DB type string and instantiate proper subclass
         if (typeStr == "Book") {
             return new PhysicalBook(id, title, extraData1, extraData2);
-        } else if (typeStr == "Laptop") {
+        }
+        else if (typeStr == "EBook") {
+        return new EBook(id, title);
+    }
+         else if (typeStr == "Laptop") {
             return new Laptop(id, title, extraData1);
         }
         return nullptr;
@@ -206,7 +236,7 @@ class DatabaseManager {
 private:
     static DatabaseManager* instance;
     bool isConnected;
-    
+
     DatabaseManager() {
         isConnected = false;
     }
@@ -224,8 +254,8 @@ public:
 
     bool connectToPostgres(string connectionString) {
         // TODO (Member 1 - Story 2): Add real PostgreSQL connection logic here
-        isConnected = true; 
-        return true; 
+        isConnected = true;
+        return true;
     }
 
     void testConnection() {
@@ -238,7 +268,7 @@ public:
         // TODO (Member 1 - Story 3): "SELECT * FROM Users WHERE user_id = userId;"
         return nullptr;
     }
-    
+
     void updateBorrowRecord(int assetId, int userId, string dueDate) {
         // TODO (Member 1 - Story 3): "INSERT INTO Borrow_Records (asset_id, user_id, due_date) VALUES (...);"
     }
@@ -265,7 +295,7 @@ public:
     }
 
     bool borrowAsset(int userId, Asset* asset) {
-        // TODO (Member 3 - Story 7): 
+        // TODO (Member 3 - Story 7):
         // 1. Check if asset state is AVAILABLE
         // 2. Verify user fines < $10.00
         if (asset->getState() != AssetState::AVAILABLE) {
@@ -280,7 +310,7 @@ public:
     }
 
     void returnAsset(int userId, Asset* asset, int daysOverdue) {
-        // TODO (Member 3 - Story 8): 
+        // TODO (Member 3 - Story 8):
         // 1. Calculate fine via asset->calculateLateFine(daysOverdue)
         // 2. Update DB borrow record
         if (daysOverdue > 0) {
@@ -330,7 +360,7 @@ public:
         // 2. "SELECT COUNT(*) FROM Borrow_Records WHERE return_date IS NULL AND due_date < NOW();"
         // 3. "SELECT SUM(fine_amount) FROM Borrow_Records;"
         // 4. "SELECT title, COUNT(*) FROM Borrow_Records GROUP BY title ORDER BY count DESC LIMIT 3;"
-        
+
         LibraryStats stats;
         stats.totalActiveLoans = 14;
         stats.overdueCount = 3;
@@ -343,7 +373,7 @@ public:
         // TODO (Member 8 - Story 24):
         // Build parameterized SQL query using filters:
         // "SELECT record_id, user_id, asset_id, borrow_date FROM Borrow_Records WHERE ...;"
-        
+
         ReportData report;
         report.reportTitle = "Borrow History Report (" + startDate + " to " + endDate + ")";
         report.headers = {"Record ID", "User ID", "Asset Title", "Borrow Date", "Status"};
