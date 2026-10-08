@@ -1,4 +1,5 @@
-#include <QApplication>
+#include "SafeApplication.h"
+#include "SafeBackend.h"
 #include <QLabel>
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -22,10 +23,11 @@ static QWidget* makeMemberPlaceholder(const UserInfo& u, QWidget* logoutTarget) 
 }
 
 int main(int argc, char* argv[]) {
-    QApplication app(argc, argv);
+    SafeApplication app(argc, argv);          
     app.setStyleSheet(appStyleSheet());
 
-    InMemoryBackend backend;           // INTEGRATION: swap for the PostgreSQL-backed ILibraryBackend
+    InMemoryBackend rawBackend;        // INTEGRATION: swap for the PostgreSQL-backed ILibraryBackend
+    SafeBackend backend(&rawBackend);  
     AuthWindow auth(&backend);
     QWidget* current = nullptr;
 
