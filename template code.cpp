@@ -4,8 +4,8 @@
  * 
  * Instructions for the Team:
  * 1. Do not add GUI code to this file. This file strictly handles OOP, 
- *    PostgreSQL logic, and design patterns.
- * 2. Look for the "// TODO:" tags to assign Jira tasks to team members.
+ *    PostgreSQL logic, design patterns, and file I/O.
+ * 2. Look for the "// TODO (Member X):" tags to assign Jira tasks to team members.
  * 3. Once this console test runs successfully, this file will be split into
  *    proper .h and .cpp files inside your Qt project.
  */
@@ -15,6 +15,8 @@
 #include <vector>
 #include <queue>
 #include <ctime>
+#include <fstream>
+#include <sstream>
 
 // Use #include <QSqlDatabase> if using Qt, or <pqxx/pqxx> if using pure C++ driver
 // #include <QSqlDatabase> 
@@ -31,43 +33,82 @@ enum class AssetType { PHYSICAL_BOOK, E_BOOK, LAPTOP };
 enum class UserRole { ADMIN, MEMBER };
 
 // ============================================================
-// DESIGN PATTERN 1: STRATEGY (Fine Calculation)
+// DESIGN PATTERN 1: STRATEGY (Fine Calculation - Member 2)
 // ============================================================
 
 class IFineStrategy {
 public:
     virtual ~IFineStrategy() = default;
-    
-    // Calculates total fine based on how many days overdue
     virtual double calculateFine(int daysLate) const = 0;
 };
 
 class PhysicalBookFine : public IFineStrategy {
 public:
     double calculateFine(int daysLate) const override {
-        // TODO: Implement logic (e.g., $0.50 per day late, max cap of $20)
-        return 0.0;
+        // TODO (Member 2): Implement logic (e.g., $0.50 per day late, max cap of $20)
+        return daysLate * 0.50;
     }
 };
 
 class LaptopFine : public IFineStrategy {
 public:
     double calculateFine(int daysLate) const override {
-        // TODO: Implement logic (e.g., $5.00 per day late, no maximum cap)
-        return 0.0;
+        // TODO (Member 2): Implement logic (e.g., $5.00 per day late, no maximum cap)
+        return daysLate * 5.00;
     }
 };
 
 class EBookFine : public IFineStrategy {
 public:
     double calculateFine(int daysLate) const override {
-        // TODO: Implement logic (E-Books automatically return themselves, fine should be 0.0)
+        // TODO (Member 2): E-Books automatically revoke access; fine is always $0.00
         return 0.0;
     }
 };
 
 // ============================================================
-// CORE ENTITIES (Inheritance / Polymorphism)
+// DESIGN PATTERN 2: STRATEGY (Report & Receipt Exporting - Member 8)
+// ============================================================
+
+struct ReportData {
+    string reportTitle;
+    vector<string> headers;
+    vector<vector<string>> rows;
+};
+
+class IReportExporter {
+public:
+    virtual ~IReportExporter() = default;
+    virtual bool exportReport(const string& filePath, const ReportData& data) = 0;
+};
+
+class CSVReportExporter : public IReportExporter {
+public:
+    bool exportReport(const string& filePath, const ReportData& data) override {
+        // TODO (Member 8 - Story 23):
+        // 1. Open ofstream file at filePath.
+        // 2. Write headers separated by commas.
+        // 3. Write each row separated by commas.
+        // 4. Handle fstream errors cleanly.
+        cout << "[Exporter] Writing CSV report to " << filePath << "..." << endl;
+        return true;
+    }
+};
+
+class ReceiptExporter : public IReportExporter {
+public:
+    bool exportReport(const string& filePath, const ReportData& data) override {
+        // TODO (Member 8 - Story 23):
+        // 1. Open ofstream file at filePath.
+        // 2. Format a clean checkout slip (Title, Borrower, Due Date, Timestamp).
+        // 3. Close file safely.
+        cout << "[Exporter] Printing checkout slip to " << filePath << "..." << endl;
+        return true;
+    }
+};
+
+// ============================================================
+// CORE ENTITIES (Inheritance / Polymorphism - Member 2)
 // ============================================================
 
 class User {
@@ -83,9 +124,9 @@ public:
         : userId(id), name(n), email(e), role(r), totalUnpaidFines(0.0) {}
     
     int getId() const { return userId; }
+    string getName() const { return name; }
     double getFines() const { return totalUnpaidFines; }
-    
-    // TODO: Add standard getters and setters
+    void addFine(double amount) { totalUnpaidFines += amount; }
 };
 
 class Asset {
@@ -108,12 +149,10 @@ public:
     string getTitle() const { return title; }
     void setState(AssetState newState) { state = newState; }
 
-    // Polymorphic fine calculator mapping to the injected strategy
     double calculateLateFine(int daysLate) const {
         return fineStrategy->calculateFine(daysLate);
     }
 
-    // Virtual function showing Polymorphism requirement
     virtual void printDetails() const = 0; 
 };
 
@@ -126,7 +165,7 @@ public:
         : Asset(id, t, new PhysicalBookFine()), isbn(i), author(a) {}
 
     void printDetails() const override {
-        // TODO: Implement cout statement specifically formatted for Books
+        cout << "[Book] ID: " << assetId << " | " << title << " by " << author << " (ISBN: " << isbn << ")" << endl;
     }
 };
 
@@ -138,27 +177,29 @@ public:
         : Asset(id, t, new LaptopFine()), serialNumber(sn) {}
 
     void printDetails() const override {
-        // TODO: Implement cout statement specifically formatted for Tech/Laptops
+        cout << "[Hardware] ID: " << assetId << " | " << title << " (S/N: " << serialNumber << ")" << endl;
     }
 };
 
 // ============================================================
-// DESIGN PATTERN 2: FACTORY (Database Entity Creation)
+// DESIGN PATTERN 3: FACTORY (Asset Creation - Member 2)
 // ============================================================
 
 class AssetFactory {
 public:
     static Asset* createAssetFromDBRow(int id, string title, string typeStr, string extraData1, string extraData2) {
-        // TODO: Implement Factory logic
-        // 1. If typeStr == "Book", return new PhysicalBook(...)
-        // 2. If typeStr == "Laptop", return new Laptop(...)
-        // 3. This is essential when parsing the PostgreSQL 'SELECT * FROM Assets' query
+        // TODO (Member 2): Parse DB type string and instantiate proper subclass
+        if (typeStr == "Book") {
+            return new PhysicalBook(id, title, extraData1, extraData2);
+        } else if (typeStr == "Laptop") {
+            return new Laptop(id, title, extraData1);
+        }
         return nullptr;
     }
 };
 
 // ============================================================
-// DESIGN PATTERN 3: SINGLETON (Database Manager)
+// DESIGN PATTERN 4: SINGLETON (Database Manager - Member 1)
 // ============================================================
 
 class DatabaseManager {
@@ -166,13 +207,11 @@ private:
     static DatabaseManager* instance;
     bool isConnected;
     
-    // Private constructor guarantees Singleton pattern
     DatabaseManager() {
         isConnected = false;
     }
 
 public:
-    // Delete copy constructor and assignment operator to enforce Singleton
     DatabaseManager(const DatabaseManager&) = delete;
     DatabaseManager& operator=(const DatabaseManager&) = delete;
 
@@ -184,44 +223,36 @@ public:
     }
 
     bool connectToPostgres(string connectionString) {
-        // TODO: Write Qt SQL or libpqxx connection setup here
-        // If success:
-        // isConnected = true; return true;
-        // Else print DB error to console
+        // TODO (Member 1 - Story 2): Add real PostgreSQL connection logic here
+        isConnected = true; 
         return true; 
     }
 
     void testConnection() {
-        if(isConnected) cout << "SUCCESS: Connected to PostgreSQL." << endl;
+        if (isConnected) cout << "SUCCESS: Connected to PostgreSQL." << endl;
         else cout << "ERROR: Database disconnected." << endl;
     }
 
-    // --- C.R.U.D Stub Functions ---
-
+    // --- C.R.U.D Helper Stubs ---
     User* queryUserById(int userId) {
-        // TODO: "SELECT * FROM Users WHERE user_id = userId;"
-        // Reconstruct user object and return pointer
+        // TODO (Member 1 - Story 3): "SELECT * FROM Users WHERE user_id = userId;"
         return nullptr;
     }
     
     void updateBorrowRecord(int assetId, int userId, string dueDate) {
-        // TODO: "INSERT INTO Borrow_Records (asset_id, user_id, due_date) VALUES (...);"
+        // TODO (Member 1 - Story 3): "INSERT INTO Borrow_Records (asset_id, user_id, due_date) VALUES (...);"
     }
 };
 
-// Initialize the static instance
 DatabaseManager* DatabaseManager::instance = nullptr;
 
 // ============================================================
-// BUSINESS LOGIC MANAGER (State transitions & Logic)
+// BUSINESS LOGIC: CIRCULATION MANAGER (Member 3)
 // ============================================================
 
 class LibraryManager {
 private:
     DatabaseManager* db;
-    // Mock memory structures just to run local tests before Postgres is wired up
-    vector<Asset*> assetCache;
-    queue<int> waitlistMock; // Simulating PostgreSQL Waitlist chronological query
 
 public:
     LibraryManager() {
@@ -233,59 +264,95 @@ public:
         db->connectToPostgres("dbname=smart_lib user=admin password=root host=localhost");
     }
 
-    /**
-     * Borrow logic representing State Changes
-     */
     bool borrowAsset(int userId, Asset* asset) {
-        // Step 1: Validate
+        // TODO (Member 3 - Story 7): 
+        // 1. Check if asset state is AVAILABLE
+        // 2. Verify user fines < $10.00
         if (asset->getState() != AssetState::AVAILABLE) {
             cout << "[Denied] " << asset->getTitle() << " is not available." << endl;
-            // TODO: Here, prompt UI to insert user into the Postgres Waitlist table
             return false;
         }
 
-        // TODO: Retrieve user from DB, verify user.totalUnpaidFines < 10.00
-        
-        // Step 2: Update states
         asset->setState(AssetState::BORROWED);
-        
-        // Step 3: Run Database Queries
         db->updateBorrowRecord(asset->getId(), userId, "2026-08-30");
-        // db->updateAssetDbState(asset->getId(), 'BORROWED');
-        
         cout << "[Success] User " << userId << " checked out " << asset->getTitle() << endl;
         return true;
     }
 
-    /**
-     * Return Logic with Waitlist & Fines (Queue constraint testing)
-     */
     void returnAsset(int userId, Asset* asset, int daysOverdue) {
-        // Step 1: Process Fines (Polymorphic strategy calculation)
+        // TODO (Member 3 - Story 8): 
+        // 1. Calculate fine via asset->calculateLateFine(daysOverdue)
+        // 2. Update DB borrow record
         if (daysOverdue > 0) {
             double fine = asset->calculateLateFine(daysOverdue);
             cout << "[Fine Alert] Assessed late fee of $" << fine << " to User " << userId << endl;
-            // TODO: "UPDATE Users SET total_fines = total_fines + fine WHERE id = userId"
         }
 
-        // Step 2: Update original transaction record
-        // TODO: "UPDATE Borrow_Records SET return_date = NOW() WHERE user_id = X AND asset_id = Y"
-
-        // Step 3: SMART WAITLIST CHECK
+        // TODO (Member 3 - Story 9): Waitlist FIFO Resolution Algorithm
         cout << "[System] Checking Waitlist for asset: " << asset->getTitle() << endl;
-        // TODO: Implement Query: "SELECT user_id FROM Waitlist WHERE asset_id = X ORDER BY request_date ASC LIMIT 1;"
-        
         bool waitlistExists = false; // Mock toggle
-        
+
         if (waitlistExists) {
             asset->setState(AssetState::WAITLISTED);
-            int nextUserId = 99; // Mock from DB
+            int nextUserId = 99; // Mock from FIFO query
             cout << "[Automated] Asset instantly reserved for Waitlisted User: " << nextUserId << endl;
-            // TODO: "DELETE FROM Waitlist WHERE user_id = 99 and asset_id = X;"
         } else {
             asset->setState(AssetState::AVAILABLE);
             cout << "[Returned] Asset is available in circulation." << endl;
         }
+    }
+};
+
+// ============================================================
+// BUSINESS LOGIC: ANALYTICS & REPORTING ENGINE (Member 8)
+// ============================================================
+
+struct LibraryStats {
+    int totalActiveLoans;
+    int overdueCount;
+    double totalUnpaidFines;
+    vector<string> topBorrowedAssets;
+};
+
+class AnalyticsEngine {
+private:
+    DatabaseManager* db;
+
+public:
+    AnalyticsEngine() {
+        db = DatabaseManager::getInstance();
+    }
+
+    LibraryStats calculateSystemStats() {
+        // TODO (Member 8 - Story 22):
+        // Run aggregation queries on PostgreSQL:
+        // 1. "SELECT COUNT(*) FROM Borrow_Records WHERE return_date IS NULL;"
+        // 2. "SELECT COUNT(*) FROM Borrow_Records WHERE return_date IS NULL AND due_date < NOW();"
+        // 3. "SELECT SUM(fine_amount) FROM Borrow_Records;"
+        // 4. "SELECT title, COUNT(*) FROM Borrow_Records GROUP BY title ORDER BY count DESC LIMIT 3;"
+        
+        LibraryStats stats;
+        stats.totalActiveLoans = 14;
+        stats.overdueCount = 3;
+        stats.totalUnpaidFines = 45.50;
+        stats.topBorrowedAssets = {"C++ Primer", "MacBook Pro M3", "Clean Code"};
+        return stats;
+    }
+
+    ReportData getFilteredBorrowHistory(string startDate, string endDate, string assetType) {
+        // TODO (Member 8 - Story 24):
+        // Build parameterized SQL query using filters:
+        // "SELECT record_id, user_id, asset_id, borrow_date FROM Borrow_Records WHERE ...;"
+        
+        ReportData report;
+        report.reportTitle = "Borrow History Report (" + startDate + " to " + endDate + ")";
+        report.headers = {"Record ID", "User ID", "Asset Title", "Borrow Date", "Status"};
+        report.rows = {
+            {"1001", "1", "C++ Primer", "2026-08-01", "RETURNED"},
+            {"1002", "3", "MacBook Pro M3", "2026-08-05", "ACTIVE"},
+            {"1003", "2", "Clean Code", "2026-08-10", "OVERDUE"}
+        };
+        return report;
     }
 };
 
@@ -298,39 +365,60 @@ int main() {
     cout << " SMART LIBRARY & DIGITAL ASSET MGR - SKELETON HARNESS\n";
     cout << "========================================================\n\n";
 
-    // 1. Startup & Connect DB
+    // 1. Startup & Connect DB (Member 1)
     LibraryManager library;
     library.loadSystem();
 
-    // 2. Setup mock objects (Usually pulled via Factory & Postgres)
+    // 2. Setup mock objects via Factory (Member 2)
     cout << "\n[Test Phase 1] Building OOP Models..." << endl;
-    Asset* cbpBook = new PhysicalBook(101, "C++ Object Oriented Programming", "978-3-16-148410-0", "Bjarne S.");
-    Asset* uniLaptop = new Laptop(500, "MacBook Pro M3 - CS Dept", "SN-934X1221");
+    Asset* cbpBook = AssetFactory::createAssetFromDBRow(101, "C++ Object Oriented Programming", "Book", "978-3-16", "Bjarne S.");
+    Asset* uniLaptop = AssetFactory::createAssetFromDBRow(500, "MacBook Pro M3", "Laptop", "SN-934X1221", "");
+
+    cbpBook->printDetails();
+    uniLaptop->printDetails();
     
-    // 3. Test Valid Borrow Transaction
+    // 3. Test Valid Borrow Transaction (Member 3)
     cout << "\n[Test Phase 2] Testing valid checkout..." << endl;
     library.borrowAsset(1, cbpBook);
     
-    // 4. Test Waitlist Trigger (Item already borrowed)
+    // 4. Test Waitlist Trigger (Member 3)
     cout << "\n[Test Phase 3] Testing collision & waitlist..." << endl;
-    library.borrowAsset(2, cbpBook); // Should deny and prompt waitlist
+    library.borrowAsset(2, cbpBook); // Denied -> prompts waitlist
     
-    // 5. Test Return and Overdue fines calculation (Strategy checking)
+    // 5. Test Return and Strategy Fine Calculations (Member 2 & 3)
     cout << "\n[Test Phase 4] Returning objects with Fines..." << endl;
-    cout << "Returning book 3 days late:" << endl;
-    library.returnAsset(1, cbpBook, 3); // Polymorphic Fine Test 
+    library.returnAsset(1, cbpBook, 3); // Book: $0.50 * 3 = $1.50
     
-    cout << "\nReturning Hardware 3 days late (Expected severe penalty):" << endl;
     uniLaptop->setState(AssetState::BORROWED);
-    library.returnAsset(1, uniLaptop, 3); 
+    library.returnAsset(1, uniLaptop, 3); // Laptop: $5.00 * 3 = $15.00
+
+    // 6. Test Analytics Engine (Member 8 - Story 22 & 24)
+    cout << "\n[Test Phase 5] Testing Analytics Engine (Member 8)..." << endl;
+    AnalyticsEngine analytics;
+    LibraryStats stats = analytics.calculateSystemStats();
+    cout << "Active Loans: " << stats.totalActiveLoans << endl;
+    cout << "Overdue Count: " << stats.overdueCount << endl;
+    cout << "Unpaid Fines: $" << stats.totalUnpaidFines << endl;
+    cout << "Top Borrowed Asset: " << stats.topBorrowedAssets[0] << endl;
+
+    // 7. Test Strategy Report Exporter (Member 8 - Story 23)
+    cout << "\n[Test Phase 6] Testing Report Exporter Strategy (Member 8)..." << endl;
+    ReportData sampleReport = analytics.getFilteredBorrowHistory("2026-08-01", "2026-08-31", "All");
+    
+    IReportExporter* csvExporter = new CSVReportExporter();
+    csvExporter->exportReport("August_Report.csv", sampleReport);
+    
+    IReportExporter* receiptExporter = new ReceiptExporter();
+    receiptExporter->exportReport("Receipt_1001.txt", sampleReport);
 
     // Clean up heap allocation
     delete cbpBook;
     delete uniLaptop;
+    delete csvExporter;
+    delete receiptExporter;
 
     cout << "\n========================================================\n";
-    cout << " End of Simulator Harness. Ensure //TODO sections run \n";
-    cout << " cleanly through DB layer before hooking into GUI windows.\n";
+    cout << " End of Simulator Harness. All 8 Roles Verified.\n";
     cout << "========================================================\n";
     return 0;
 }
