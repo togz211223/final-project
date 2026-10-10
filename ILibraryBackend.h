@@ -26,4 +26,6 @@ public:
     virtual Result borrowBook(int userId, int bookId) = 0;                              // Member 3 (used by tests/demo)
     virtual Result listActiveLoans(int actorId, int userId, std::vector<LoanInfo>& out) = 0;
     virtual Result processReturn(int actorId, int loanId, double& fineCharged) = 0;     // admin only
+    virtual Result getSystemAnalytics(LibraryStats& out) = 0;
+    virtual Result exportHistoryToCSV(const QString& filePath) = 0;
 };

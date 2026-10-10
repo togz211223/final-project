@@ -12,6 +12,7 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QRegularExpression>
+#include <QFileDialog>
 
 // ---------- helpers ----------
 static QTableWidget* makeTable(const QStringList& headers) {
@@ -287,4 +288,75 @@ void ReturnsPage::processSelectedReturn() {
                                             : "Return processed successfully!");
         loadLoansForSelectedUser();
     } catch (const std::exception&) { Alert::showError(this, "Unable to process the return."); }
+}
+
+AnalyticsPage::AnalyticsPage(ILibraryBackend* backend, int actorId, QWidget* parent)
+    : QWidget(parent), backend_(backend), actorId_(actorId) {
+    auto* v = new QVBoxLayout(this);
+    v->setContentsMargins(20, 20, 20, 20);
+    v->setSpacing(16);
+
+    v->addWidget(title("Library Analytics & Operational Reports"));
+
+    // Metric Cards Frame
+    auto* card = new QFrame;
+    card->setObjectName("card");
+    auto* form = new QFormLayout(card);
+    form->setContentsMargins(20, 20, 20, 20);
+    form->setSpacing(12);
+
+    activeLoansLbl_ = new QLabel("0");
+    overdueLbl_ = new QLabel("0");
+    finesLbl_ = new QLabel("$0.00");
+    topBookLbl_ = new QLabel("None");
+
+    activeLoansLbl_->setStyleSheet("font-size: 13pt; font-weight: bold; color: #2563eb;");
+    overdueLbl_->setStyleSheet("font-size: 13pt; font-weight: bold; color: #dc2626;");
+    finesLbl_->setStyleSheet("font-size: 13pt; font-weight: bold; color: #b45309;");
+    topBookLbl_->setStyleSheet("font-size: 12pt; font-weight: bold; color: #0f172a;");
+
+    form->addRow("📖 Total Active Loans:", activeLoansLbl_);
+    form->addRow("⚠️ Current Overdue Items:", overdueLbl_);
+    form->addRow("💰 Total Outstanding Unpaid Fines:", finesLbl_);
+    form->addRow("🏆 #1 Most Popular Book:", topBookLbl_);
+
+    v->addWidget(card);
+
+    // Export Action Row
+    auto* exportBtn = button("Export Borrow History (.csv)", "primary");
+    auto* refreshBtn = button("Refresh Metrics");
+    connect(refreshBtn, &QPushButton::clicked, this, &AnalyticsPage::refresh);
+    connect(exportBtn, &QPushButton::clicked, this, &AnalyticsPage::exportCSV);
+
+    auto* btnRow = new QHBoxLayout;
+    btnRow->addWidget(refreshBtn);
+    btnRow->addWidget(exportBtn);
+    btnRow->addStretch();
+
+    v->addLayout(btnRow);
+    v->addStretch();
+
+    refresh();
+}
+
+void AnalyticsPage::refresh() {
+    LibraryStats s;
+    if (backend_->getSystemAnalytics(s).ok) {
+        activeLoansLbl_->setText(QString::number(s.activeLoans));
+        overdueLbl_->setText(QString::number(s.overdueLoans));
+        finesLbl_->setText(QString("$%1").arg(s.totalUnpaidFines, 0, 'f', 2));
+        topBookLbl_->setText(s.topBook);
+    }
+}
+
+void AnalyticsPage::exportCSV() {
+    QString path = QFileDialog::getSaveFileName(this, "Save Report", "Library_Report.csv", "CSV Files (*.csv)");
+    if (path.isEmpty()) return;
+
+    Result r = backend_->exportHistoryToCSV(path);
+    if (r.ok) {
+        Alert::showSuccess(this, "Report exported successfully! You can open it in Excel.");
+    } else {
+        Alert::showError(this, r.message);
+    }
 }

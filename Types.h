@@ -38,3 +38,10 @@ struct LoanInfo {
     QDate borrowDate;
     QDate dueDate;
 };
+
+struct LibraryStats {
+    int activeLoans = 0;
+    int overdueLoans = 0;
+    double totalUnpaidFines = 0.0;
+    QString topBook = "None";
+};

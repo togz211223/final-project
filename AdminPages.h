@@ -58,3 +58,15 @@ private:
     QPushButton* returnBtn_; QLabel* loanHint_;
     std::vector<UserInfo> users_; std::vector<LoanInfo> loans_;
 };
+
+class AnalyticsPage : public QWidget {
+    Q_OBJECT
+public:
+    AnalyticsPage(ILibraryBackend* backend, int actorId, QWidget* parent = nullptr);
+    void refresh();
+private:
+    void exportCSV();
+    ILibraryBackend* backend_;
+    int actorId_;
+    QLabel *activeLoansLbl_, *overdueLbl_, *finesLbl_, *topBookLbl_;
+};

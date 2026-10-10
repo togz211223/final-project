@@ -121,3 +121,11 @@ Result InMemoryBackend::processReturn(int actorId, int loanId, double& fine) {
     loans_.erase(it);
     return Result::success();
 }
+
+Result InMemoryBackend::getSystemAnalytics(LibraryStats& out) {
+    return Result::success();
+}
+
+Result InMemoryBackend::exportHistoryToCSV(const QString& filePath) {
+    return Result::success();
+}
