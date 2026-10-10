@@ -4,8 +4,8 @@
 #include "Types.h"
 class ILibraryBackend; class QStackedWidget; class QPushButton;
 
-// Throws std::invalid_argument if the user is not an ADMIN. Every backend call
-// additionally re-checks the role on the backend side.
+// Throws std::invalid_argument if the user is not an ADMIN.
+// also re-checks the role on the backend side.
 class AdminDashboard : public QWidget {
     Q_OBJECT
 public:
