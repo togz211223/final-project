@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 #include <queue>
+#include <map>
 #include <ctime>
 #include <fstream>
 #include <sstream>
@@ -300,6 +301,11 @@ public:
             asset->setState(AssetState::AVAILABLE);
             cout << "[Returned] Asset is available in circulation." << endl;
         }
+        
+        std::cout << "[DB Update] Borrow record closed for Asset ID: " << asset->getId() << std::endl;
+        
+        // Route back into automated workflow triggers
+        resolveWaitlistQueue(asset);
     }
 };
 
@@ -360,10 +366,12 @@ public:
 // MAIN FUNCTION (TEST HARNESS)
 // ============================================================
 
-int main() {
-    cout << "========================================================\n";
-    cout << " SMART LIBRARY & DIGITAL ASSET MGR - SKELETON HARNESS\n";
-    cout << "========================================================\n\n";
+struct LibraryStats {
+    int totalActiveLoans;
+    int overdueCount;
+    double totalUnpaidFines;
+    vector<string> topBorrowedAssets;
+};
 
     // 1. Startup & Connect DB (Member 1)
     LibraryManager library;
